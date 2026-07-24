@@ -284,6 +284,16 @@
       font-size: 0.85rem;
     }
 
+    .rank-status {
+      font-size: 0.72rem;
+      color: #777;
+      margin-bottom: 8px;
+    }
+
+    .rank-status.online {
+      color: #66bb6a;
+    }
+
     @media (max-width: 759px) {
       body {
         padding: 8px 10px 20px;
@@ -401,6 +411,7 @@
         </div>
         <div class="panel">
           <h3>랭킹</h3>
+          <p id="rankStatus" class="rank-status">랭킹 불러오는 중…</p>
           <ol id="rankList" class="rank-list"></ol>
           <p id="rankEmpty" class="rank-empty">아직 기록이 없어요</p>
         </div>
@@ -433,14 +444,15 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="leaderboard.js"></script>
   <script>
     const COLS = 10;
     const ROWS = 20;
     const CELL = 24;
 
-    const RANK_KEY = "tetrisRankings";
+    const GAME_ID = "tetris";
     const NAME_KEY = "tetrisPlayerName";
-    const MAX_RANK = 10;
 
     const boardCanvas = document.getElementById("board");
     const boardCtx = boardCanvas.getContext("2d");
@@ -452,6 +464,7 @@
     const linesEl = document.getElementById("lines");
     const rankListEl = document.getElementById("rankList");
     const rankEmptyEl = document.getElementById("rankEmpty");
+    const rankStatusEl = document.getElementById("rankStatus");
 
     const COLORS = {
       I: "#4dd0e1",
@@ -503,32 +516,7 @@
     let rafId = null;
     let playerName = localStorage.getItem(NAME_KEY) || "";
 
-    function loadRankings() {
-      try {
-        const raw = JSON.parse(localStorage.getItem(RANK_KEY) || "[]");
-        return Array.isArray(raw) ? raw : [];
-      } catch (e) {
-        return [];
-      }
-    }
-
-    function saveRankings(list) {
-      localStorage.setItem(RANK_KEY, JSON.stringify(list.slice(0, MAX_RANK)));
-    }
-
-    function addRanking(name, pts) {
-      const list = loadRankings();
-      list.push({ name: name, score: pts, at: Date.now() });
-      list.sort(function (a, b) {
-        if (b.score !== a.score) return b.score - a.score;
-        return a.at - b.at;
-      });
-      saveRankings(list);
-      renderRankings();
-    }
-
-    function renderRankings() {
-      const list = loadRankings();
+    function paintRankings(list) {
       rankListEl.innerHTML = "";
       if (!list.length) {
         rankEmptyEl.style.display = "block";
@@ -545,6 +533,24 @@
         li.querySelector(".pts").textContent = entry.score;
         rankListEl.appendChild(li);
       });
+    }
+
+    async function updateRankStatus() {
+      const online = await ToyLeaderboard.isOnline();
+      rankStatusEl.textContent = online ? "전체 공유 랭킹 (Supabase)" : "이 기기 랭킹 (연결 대기)";
+      rankStatusEl.classList.toggle("online", online);
+    }
+
+    async function renderRankings() {
+      const list = await ToyLeaderboard.fetchRankings(GAME_ID);
+      paintRankings(list);
+      await updateRankStatus();
+    }
+
+    async function addRanking(name, pts) {
+      const list = await ToyLeaderboard.submitScore(GAME_ID, name, pts);
+      paintRankings(list);
+      await updateRankStatus();
     }
 
     function bindStartUi() {
@@ -768,13 +774,13 @@
       document.getElementById("resumeBtn").addEventListener("click", resumeGame);
     }
 
-    function endGame() {
+    async function endGame() {
       running = false;
       paused = false;
       gameOverFlag = true;
       if (rafId) cancelAnimationFrame(rafId);
       updatePauseUi();
-      addRanking(playerName, score);
+      await addRanking(playerName, score);
       showStartScreen(playerName + "님 점수 " + score + "점!");
       const restartBtn = document.createElement("button");
       restartBtn.id = "restartBtn";
