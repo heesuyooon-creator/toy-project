@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Toy Project</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=IBM+Plex+Sans+KR:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink: #0e1218;
+      --paper: #f3f6f4;
+      --accent: #e85d04;
+      --accent-2: #1b998b;
+      --muted: #5c6770;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: "IBM Plex Sans KR", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(ellipse 80% 50% at 10% 0%, rgba(232, 93, 4, 0.18), transparent 55%),
+        radial-gradient(ellipse 70% 45% at 90% 10%, rgba(27, 153, 139, 0.16), transparent 50%),
+        linear-gradient(165deg, #f7faf8 0%, #e8eef0 45%, #f0ebe4 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+    }
+
+    .brand {
+      font-family: Outfit, sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.8rem, 8vw, 4.5rem);
+      letter-spacing: -0.04em;
+      line-height: 1;
+      margin-bottom: 12px;
+      animation: rise 0.7s ease both;
+    }
+
+    .lead {
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin-bottom: 40px;
+      animation: rise 0.7s ease 0.08s both;
+    }
+
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+      max-width: 640px;
+      animation: rise 0.7s ease 0.16s both;
+    }
+
+    a {
+      font-family: Outfit, sans-serif;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+      color: var(--ink);
+      padding: 14px 22px;
+      border: 2px solid var(--ink);
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter: blur(6px);
+      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    a:hover {
+      transform: translateY(-3px);
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    a:nth-child(1):hover { background: #0b0221; }
+    a:nth-child(2):hover { background: #1e1e2e; }
+    a:nth-child(3):hover { background: var(--accent-2); border-color: var(--accent-2); }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1 class="brand">Toy Project</h1>
+  <p class="lead">미니 게임 · 할 일 모음</p>
+  <nav>
+    <a href="snake.html">네온 스네이크</a>
+    <a href="tetris.html">테트리스</a>
+    <a href="todo.html">TODO</a>
+  </nav>
+</body>
+</html>

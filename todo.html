@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>간단한 TODO</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      color: #222;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 420px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #ddd;
+      padding: 20px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    label {
+      display: block;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: 1px solid #333;
+      background: #333;
+      color: #fff;
+      font-size: 0.95rem;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #fff;
+      color: #333;
+    }
+
+    button:hover {
+      opacity: 0.85;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .row input {
+      flex: 1;
+    }
+
+    .user-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      font-size: 0.95rem;
+    }
+
+    ul {
+      list-style: none;
+      margin-top: 16px;
+    }
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    li span {
+      flex: 1;
+      word-break: break-word;
+    }
+
+    li.done span {
+      text-decoration: line-through;
+      color: #999;
+    }
+
+    .empty {
+      margin-top: 16px;
+      color: #888;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>간단한 TODO</h1>
+
+    <!-- 로그인 -->
+    <div id="loginView" class="card">
+      <label for="usernameInput">사용자 이름</label>
+      <input type="text" id="usernameInput" placeholder="이름을 입력하세요" />
+      <div class="row">
+        <button id="loginBtn" style="width: 100%;">시작하기</button>
+      </div>
+    </div>
+
+    <!-- TODO -->
+    <div id="todoView" class="card hidden">
+      <div class="user-bar">
+        <span id="welcomeText"></span>
+        <button id="logoutBtn" class="secondary">나가기</button>
+      </div>
+
+      <label for="todoInput">할 일</label>
+      <div class="row">
+        <input type="text" id="todoInput" placeholder="할 일을 입력하세요" />
+        <button id="addBtn">추가</button>
+      </div>
+
+      <ul id="todoList"></ul>
+      <p id="emptyMsg" class="empty">할 일이 없습니다.</p>
+    </div>
+  </div>
+
+  <script>
+    const loginView = document.getElementById("loginView");
+    const todoView = document.getElementById("todoView");
+    const usernameInput = document.getElementById("usernameInput");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const welcomeText = document.getElementById("welcomeText");
+    const todoInput = document.getElementById("todoInput");
+    const addBtn = document.getElementById("addBtn");
+    const todoList = document.getElementById("todoList");
+    const emptyMsg = document.getElementById("emptyMsg");
+
+    let currentUser = null;
+
+    function storageKey(username) {
+      return "todos_" + username;
+    }
+
+    function getTodos() {
+      const raw = localStorage.getItem(storageKey(currentUser));
+      return raw ? JSON.parse(raw) : [];
+    }
+
+    function saveTodos(todos) {
+      localStorage.setItem(storageKey(currentUser), JSON.stringify(todos));
+    }
+
+    function showLogin() {
+      currentUser = null;
+      loginView.classList.remove("hidden");
+      todoView.classList.add("hidden");
+      usernameInput.value = "";
+      usernameInput.focus();
+    }
+
+    function showTodo(username) {
+      currentUser = username;
+      loginView.classList.add("hidden");
+      todoView.classList.remove("hidden");
+      welcomeText.textContent = username + "님의 할 일";
+      todoInput.value = "";
+      renderTodos();
+      todoInput.focus();
+    }
+
+    function renderTodos() {
+      const todos = getTodos();
+      todoList.innerHTML = "";
+      emptyMsg.style.display = todos.length === 0 ? "block" : "none";
+
+      todos.forEach(function (todo) {
+        const li = document.createElement("li");
+        if (todo.done) li.classList.add("done");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = todo.done;
+        checkbox.addEventListener("change", function () {
+          toggleTodo(todo.id);
+        });
+
+        const span = document.createElement("span");
+        span.textContent = todo.text;
+
+        const delBtn = document.createElement("button");
+        delBtn.className = "secondary";
+        delBtn.textContent = "삭제";
+        delBtn.addEventListener("click", function () {
+          deleteTodo(todo.id);
+        });
+
+        li.appendChild(checkbox);
+        li.appendChild(span);
+        li.appendChild(delBtn);
+        todoList.appendChild(li);
+      });
+    }
+
+    function addTodo() {
+      const text = todoInput.value.trim();
+      if (!text) return;
+
+      const todos = getTodos();
+      todos.push({
+        id: Date.now(),
+        text: text,
+        done: false
+      });
+      saveTodos(todos);
+      todoInput.value = "";
+      renderTodos();
+      todoInput.focus();
+    }
+
+    function toggleTodo(id) {
+      const todos = getTodos().map(function (todo) {
+        if (todo.id === id) {
+          return { id: todo.id, text: todo.text, done: !todo.done };
+        }
+        return todo;
+      });
+      saveTodos(todos);
+      renderTodos();
+    }
+
+    function deleteTodo(id) {
+      const todos = getTodos().filter(function (todo) {
+        return todo.id !== id;
+      });
+      saveTodos(todos);
+      renderTodos();
+    }
+
+    loginBtn.addEventListener("click", function () {
+      const name = usernameInput.value.trim();
+      if (!name) {
+        alert("사용자 이름을 입력하세요.");
+        return;
+      }
+      showTodo(name);
+    });
+
+    usernameInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") loginBtn.click();
+    });
+
+    logoutBtn.addEventListener("click", showLogin);
+
+    addBtn.addEventListener("click", addTodo);
+
+    todoInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") addTodo();
+    });
+  </script>
+</body>
+</html>
