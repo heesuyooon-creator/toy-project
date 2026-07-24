@@ -42,11 +42,47 @@
       flex-direction: column;
       align-items: center;
       gap: 12px;
+      width: min(240px, 70vw);
+    }
+
+    .live-hud {
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 8px 0;
+      background: linear-gradient(180deg, rgba(30, 30, 46, 0.98), rgba(30, 30, 46, 0.9));
+    }
+
+    .live-hud .hud-item {
+      background: #2a2a3d;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .live-hud .label {
+      display: block;
+      font-size: 0.7rem;
+      color: #aaa;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .live-hud .value {
+      font-size: 1.25rem;
+      font-weight: bold;
+      line-height: 1.2;
     }
 
     .board-wrap {
       position: relative;
-      width: min(240px, 70vw);
+      width: 100%;
     }
 
     canvas#board {
@@ -249,9 +285,70 @@
     }
 
     @media (max-width: 759px) {
+      body {
+        padding: 8px 10px 20px;
+      }
+
+      .title {
+        font-size: 1.15rem;
+        margin-bottom: 6px;
+      }
+
+      .play-col {
+        width: min(46vw, 38dvh);
+        gap: 8px;
+      }
+
+      .live-hud {
+        gap: 6px;
+        padding: 4px 0;
+      }
+
+      .live-hud .hud-item {
+        padding: 6px 8px;
+      }
+
+      .live-hud .value {
+        font-size: 1.05rem;
+      }
+
       .mobile-controls {
         display: flex;
         flex-direction: column;
+        width: min(320px, 94vw);
+      }
+
+      .mobile-controls button {
+        min-width: 58px;
+        min-height: 46px;
+        font-size: 1rem;
+      }
+
+      .pause-btn {
+        min-width: 100px;
+        padding: 8px 14px;
+      }
+
+      .side {
+        width: min(320px, 94vw);
+      }
+
+      .side .panel.next-panel {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .side .panel.next-panel h3 {
+        margin-bottom: 0;
+      }
+    }
+
+    @media (min-width: 760px) {
+      .live-hud {
+        position: static;
+        background: transparent;
+        padding: 0;
       }
     }
   </style>
@@ -261,6 +358,16 @@
     <h1 class="title">테트리스</h1>
     <div class="app">
       <div class="play-col">
+        <div class="live-hud" aria-label="현재 상태">
+          <div class="hud-item">
+            <span class="label">점수</span>
+            <span id="score" class="value">0</span>
+          </div>
+          <div class="hud-item">
+            <span class="label">줄 수</span>
+            <span id="lines" class="value">0</span>
+          </div>
+        </div>
         <div class="board-wrap">
           <canvas id="board" width="240" height="480"></canvas>
           <div id="overlay" class="overlay">
@@ -288,15 +395,7 @@
       </div>
 
       <div class="side">
-        <div class="panel">
-          <h3>점수</h3>
-          <div id="score" class="value">0</div>
-        </div>
-        <div class="panel">
-          <h3>줄 수</h3>
-          <div id="lines" class="value">0</div>
-        </div>
-        <div class="panel">
+        <div class="panel next-panel">
           <h3>다음 블록</h3>
           <canvas id="next" width="96" height="96"></canvas>
         </div>

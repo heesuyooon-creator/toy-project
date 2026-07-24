@@ -51,6 +51,8 @@
       align-items: flex-start;
       flex-wrap: wrap;
       justify-content: center;
+      width: 100%;
+      max-width: 760px;
     }
 
     .play-col {
@@ -58,11 +60,61 @@
       flex-direction: column;
       align-items: center;
       gap: 14px;
+      width: min(400px, 92vw);
+    }
+
+    .live-hud {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 8px 0;
+      background: linear-gradient(180deg, rgba(11, 2, 33, 0.96), rgba(11, 2, 33, 0.88));
+      backdrop-filter: blur(6px);
+    }
+
+    .live-hud .hud-item {
+      background: rgba(20, 8, 40, 0.85);
+      border: 1px solid #f0f;
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: center;
+      box-shadow: 0 0 8px rgba(255, 0, 255, 0.25);
+    }
+
+    .live-hud .label {
+      display: block;
+      font-size: 0.68rem;
+      color: #d9a3ff;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .live-hud .value {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #0ff;
+      text-shadow: 0 0 8px #0ff;
+      line-height: 1.2;
+    }
+
+    .live-hud .hud-item.high .value {
+      color: #ffd700;
+      text-shadow: 0 0 8px #ffd700;
+    }
+
+    .live-hud .hud-item.speed .value {
+      color: #f0f;
+      text-shadow: 0 0 8px #f0f;
     }
 
     .board-wrap {
       position: relative;
-      width: min(400px, 92vw);
+      width: 100%;
       aspect-ratio: 1;
     }
 
@@ -297,9 +349,62 @@
       font-size: 0.85rem;
     }
 
+    @media (max-width: 759px) {
+      body {
+        padding: 10px 12px 24px;
+      }
+
+      h1.title {
+        font-size: 1.2rem;
+        margin-bottom: 8px;
+      }
+
+      .play-col {
+        width: min(92vw, 58dvh);
+        gap: 10px;
+      }
+
+      .live-hud {
+        gap: 6px;
+        padding: 6px 0;
+      }
+
+      .live-hud .hud-item {
+        padding: 6px 8px;
+      }
+
+      .live-hud .value {
+        font-size: 1.1rem;
+      }
+
+      .dpad {
+        grid-template-columns: 56px 56px 56px;
+        grid-template-rows: 56px 56px 56px;
+        gap: 4px;
+      }
+
+      .dpad button {
+        width: 56px;
+        height: 56px;
+        font-size: 1.2rem;
+      }
+
+      .pause-btn {
+        min-width: 100px;
+        padding: 8px 14px;
+      }
+    }
+
     @media (min-width: 760px) {
       .dpad {
         display: none;
+      }
+
+      .live-hud {
+        position: static;
+        background: transparent;
+        backdrop-filter: none;
+        padding: 0;
       }
     }
   </style>
@@ -308,6 +413,20 @@
   <h1 class="title">NEON SNAKE</h1>
   <div class="app">
     <div class="play-col">
+      <div class="live-hud" aria-label="현재 상태">
+        <div class="hud-item">
+          <span class="label">점수</span>
+          <span id="score" class="value">0</span>
+        </div>
+        <div class="hud-item high">
+          <span class="label">최고</span>
+          <span id="highScore" class="value">0</span>
+        </div>
+        <div class="hud-item speed">
+          <span class="label">속도</span>
+          <span id="speedLevel" class="value">1</span>
+        </div>
+      </div>
       <div class="board-wrap">
         <canvas id="board" width="400" height="400"></canvas>
         <div id="overlay" class="overlay">
@@ -331,18 +450,6 @@
     </div>
 
     <div class="side">
-      <div class="panel">
-        <h3>점수</h3>
-        <div id="score" class="value">0</div>
-      </div>
-      <div class="panel high">
-        <h3>최고 점수</h3>
-        <div id="highScore" class="value">0</div>
-      </div>
-      <div class="panel speed">
-        <h3>속도 레벨</h3>
-        <div id="speedLevel" class="value">1</div>
-      </div>
       <div class="panel">
         <h3>랭킹</h3>
         <ol id="rankList" class="rank-list"></ol>
