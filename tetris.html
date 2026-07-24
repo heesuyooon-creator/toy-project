@@ -177,6 +177,77 @@
       min-width: 100px;
     }
 
+    .name-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: min(200px, 85%);
+      text-align: left;
+    }
+
+    .name-field label {
+      font-size: 0.8rem;
+      color: #aaa;
+    }
+
+    .name-field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #666;
+      border-radius: 4px;
+      background: #12121c;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .name-field input:focus {
+      border-color: #aaa;
+    }
+
+    .name-error {
+      color: #ef5350;
+      font-size: 0.8rem;
+      min-height: 1.1em;
+    }
+
+    .rank-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+
+    .rank-list li {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .rank-list .rank {
+      color: #ffee58;
+      font-weight: bold;
+    }
+
+    .rank-list .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-list .pts {
+      color: #fff;
+      font-weight: bold;
+    }
+
+    .rank-empty {
+      color: #777;
+      font-size: 0.85rem;
+    }
+
     @media (max-width: 759px) {
       .mobile-controls {
         display: flex;
@@ -194,6 +265,11 @@
           <canvas id="board" width="240" height="480"></canvas>
           <div id="overlay" class="overlay">
             <h2>테트리스</h2>
+            <div class="name-field">
+              <label for="playerName">플레이어 이름</label>
+              <input id="playerName" type="text" maxlength="12" placeholder="이름 입력" autocomplete="nickname" />
+              <div id="nameError" class="name-error"></div>
+            </div>
             <button id="startBtn" type="button">시작하기</button>
           </div>
         </div>
@@ -223,6 +299,11 @@
         <div class="panel">
           <h3>다음 블록</h3>
           <canvas id="next" width="96" height="96"></canvas>
+        </div>
+        <div class="panel">
+          <h3>랭킹</h3>
+          <ol id="rankList" class="rank-list"></ol>
+          <p id="rankEmpty" class="rank-empty">아직 기록이 없어요</p>
         </div>
         <div class="panel">
           <h3>조작법</h3>
@@ -258,15 +339,20 @@
     const ROWS = 20;
     const CELL = 24;
 
+    const RANK_KEY = "tetrisRankings";
+    const NAME_KEY = "tetrisPlayerName";
+    const MAX_RANK = 10;
+
     const boardCanvas = document.getElementById("board");
     const boardCtx = boardCanvas.getContext("2d");
     const nextCanvas = document.getElementById("next");
     const nextCtx = nextCanvas.getContext("2d");
     const overlay = document.getElementById("overlay");
-    const startBtn = document.getElementById("startBtn");
     const pauseBtn = document.getElementById("pauseBtn");
     const scoreEl = document.getElementById("score");
     const linesEl = document.getElementById("lines");
+    const rankListEl = document.getElementById("rankList");
+    const rankEmptyEl = document.getElementById("rankEmpty");
 
     const COLORS = {
       I: "#4dd0e1",
@@ -316,6 +402,80 @@
     let paused = false;
     let gameOverFlag = false;
     let rafId = null;
+    let playerName = localStorage.getItem(NAME_KEY) || "";
+
+    function loadRankings() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(RANK_KEY) || "[]");
+        return Array.isArray(raw) ? raw : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRankings(list) {
+      localStorage.setItem(RANK_KEY, JSON.stringify(list.slice(0, MAX_RANK)));
+    }
+
+    function addRanking(name, pts) {
+      const list = loadRankings();
+      list.push({ name: name, score: pts, at: Date.now() });
+      list.sort(function (a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.at - b.at;
+      });
+      saveRankings(list);
+      renderRankings();
+    }
+
+    function renderRankings() {
+      const list = loadRankings();
+      rankListEl.innerHTML = "";
+      if (!list.length) {
+        rankEmptyEl.style.display = "block";
+        return;
+      }
+      rankEmptyEl.style.display = "none";
+      list.forEach(function (entry, i) {
+        const li = document.createElement("li");
+        li.innerHTML =
+          '<span class="rank">' + (i + 1) + "</span>" +
+          '<span class="name"></span>' +
+          '<span class="pts"></span>';
+        li.querySelector(".name").textContent = entry.name;
+        li.querySelector(".pts").textContent = entry.score;
+        rankListEl.appendChild(li);
+      });
+    }
+
+    function bindStartUi() {
+      const startBtn = document.getElementById("startBtn");
+      const nameInput = document.getElementById("playerName");
+      if (nameInput) {
+        nameInput.value = playerName;
+        nameInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            startGame();
+          }
+        });
+      }
+      if (startBtn) startBtn.addEventListener("click", startGame);
+    }
+
+    function showStartScreen(message) {
+      overlay.classList.remove("hidden");
+      overlay.innerHTML =
+        "<h2>테트리스</h2>" +
+        (message ? "<p>" + message + "</p>" : "") +
+        '<div class="name-field">' +
+        '<label for="playerName">플레이어 이름</label>' +
+        '<input id="playerName" type="text" maxlength="12" placeholder="이름 입력" autocomplete="nickname" />' +
+        '<div id="nameError" class="name-error"></div>' +
+        "</div>" +
+        '<button id="startBtn" type="button">시작하기</button>';
+      bindStartUi();
+    }
 
     function createGrid() {
       return Array.from({ length: ROWS }, function () {
@@ -515,15 +675,29 @@
       gameOverFlag = true;
       if (rafId) cancelAnimationFrame(rafId);
       updatePauseUi();
-      overlay.classList.remove("hidden");
-      overlay.innerHTML =
-        "<h2>게임 오버</h2>" +
-        "<p>점수: " + score + "</p>" +
-        '<button id="restartBtn" type="button">다시 시작</button>';
-      document.getElementById("restartBtn").addEventListener("click", startGame);
+      addRanking(playerName, score);
+      showStartScreen(playerName + "님 점수 " + score + "점!");
+      const restartBtn = document.createElement("button");
+      restartBtn.id = "restartBtn";
+      restartBtn.type = "button";
+      restartBtn.textContent = "같은 이름으로 다시";
+      overlay.appendChild(restartBtn);
+      restartBtn.addEventListener("click", startGame);
     }
 
     function startGame() {
+      const nameInput = document.getElementById("playerName");
+      const nameError = document.getElementById("nameError");
+      const name = nameInput ? nameInput.value.trim() : playerName.trim();
+      if (!name) {
+        if (nameError) nameError.textContent = "이름을 입력해주세요";
+        if (nameInput) nameInput.focus();
+        return;
+      }
+      playerName = name.slice(0, 12);
+      localStorage.setItem(NAME_KEY, playerName);
+      if (nameError) nameError.textContent = "";
+
       grid = createGrid();
       score = 0;
       lines = 0;
@@ -634,9 +808,10 @@
       });
     });
 
-    startBtn.addEventListener("click", startGame);
     pauseBtn.addEventListener("click", togglePause);
 
+    renderRankings();
+    bindStartUi();
     draw();
     drawNext();
   </script>

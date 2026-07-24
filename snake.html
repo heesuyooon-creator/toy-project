@@ -226,6 +226,77 @@
       transform: scale(0.96);
     }
 
+    .name-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: min(220px, 80%);
+      text-align: left;
+    }
+
+    .name-field label {
+      font-size: 0.8rem;
+      color: #d9a3ff;
+    }
+
+    .name-field input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #0ff;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.45);
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .name-field input:focus {
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+
+    .name-error {
+      color: #ff6b9d;
+      font-size: 0.8rem;
+      min-height: 1.1em;
+    }
+
+    .rank-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #cfc0e6;
+    }
+
+    .rank-list li {
+      display: grid;
+      grid-template-columns: 28px 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .rank-list .rank {
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .rank-list .name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .rank-list .pts {
+      color: #0ff;
+      font-weight: bold;
+    }
+
+    .rank-empty {
+      color: #8a7a9e;
+      font-size: 0.85rem;
+    }
+
     @media (min-width: 760px) {
       .dpad {
         display: none;
@@ -242,7 +313,12 @@
         <div id="overlay" class="overlay">
           <h2>네온 스네이크</h2>
           <p>화려한 네온 세상에서 뱀을 키워보세요</p>
-          <button id="startBtn">시작하기</button>
+          <div class="name-field">
+            <label for="playerName">플레이어 이름</label>
+            <input id="playerName" type="text" maxlength="12" placeholder="이름 입력" autocomplete="nickname" />
+            <div id="nameError" class="name-error"></div>
+          </div>
+          <button id="startBtn" type="button">시작하기</button>
         </div>
       </div>
       <button id="pauseBtn" class="pause-btn hidden" type="button">일시정지</button>
@@ -266,6 +342,11 @@
       <div class="panel speed">
         <h3>속도 레벨</h3>
         <div id="speedLevel" class="value">1</div>
+      </div>
+      <div class="panel">
+        <h3>랭킹</h3>
+        <ol id="rankList" class="rank-list"></ol>
+        <p id="rankEmpty" class="rank-empty">아직 기록이 없어요</p>
       </div>
       <div class="panel">
         <h3>조작법</h3>
@@ -302,15 +383,19 @@
     const SPEED_STEP = 3;
     const BONUS_DURATION = 5000;
     const BONUS_SPAWN_CHANCE = 0.03;
+    const RANK_KEY = "snakeRankings";
+    const NAME_KEY = "snakePlayerName";
+    const MAX_RANK = 10;
 
     const boardCanvas = document.getElementById("board");
     const boardCtx = boardCanvas.getContext("2d");
     const overlay = document.getElementById("overlay");
-    const startBtn = document.getElementById("startBtn");
     const pauseBtn = document.getElementById("pauseBtn");
     const scoreEl = document.getElementById("score");
     const highScoreEl = document.getElementById("highScore");
     const speedLevelEl = document.getElementById("speedLevel");
+    const rankListEl = document.getElementById("rankList");
+    const rankEmptyEl = document.getElementById("rankEmpty");
 
     let snake = [];
     let dir = { x: 1, y: 0 };
@@ -322,8 +407,9 @@
 
     let score = 0;
     let foodCount = 0;
-    let highScore = Number(localStorage.getItem("snakeHighScore")) || 0;
+    let highScore = 0;
     let tickInterval = BASE_INTERVAL;
+    let playerName = localStorage.getItem(NAME_KEY) || "";
 
     let running = false;
     let paused = false;
@@ -333,7 +419,83 @@
     let pauseStartedAt = 0;
     let bonusPauseOffset = 0;
 
-    highScoreEl.textContent = highScore;
+    function loadRankings() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(RANK_KEY) || "[]");
+        return Array.isArray(raw) ? raw : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRankings(list) {
+      localStorage.setItem(RANK_KEY, JSON.stringify(list.slice(0, MAX_RANK)));
+    }
+
+    function addRanking(name, pts) {
+      const list = loadRankings();
+      list.push({ name: name, score: pts, at: Date.now() });
+      list.sort(function (a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.at - b.at;
+      });
+      saveRankings(list);
+      renderRankings();
+    }
+
+    function renderRankings() {
+      const list = loadRankings();
+      highScore = list.length ? list[0].score : 0;
+      highScoreEl.textContent = highScore;
+      rankListEl.innerHTML = "";
+      if (!list.length) {
+        rankEmptyEl.style.display = "block";
+        return;
+      }
+      rankEmptyEl.style.display = "none";
+      list.forEach(function (entry, i) {
+        const li = document.createElement("li");
+        li.innerHTML =
+          '<span class="rank">' + (i + 1) + "</span>" +
+          '<span class="name"></span>' +
+          '<span class="pts"></span>';
+        li.querySelector(".name").textContent = entry.name;
+        li.querySelector(".pts").textContent = entry.score;
+        rankListEl.appendChild(li);
+      });
+    }
+
+    function bindStartUi() {
+      const startBtn = document.getElementById("startBtn");
+      const nameInput = document.getElementById("playerName");
+      if (nameInput) {
+        nameInput.value = playerName;
+        nameInput.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            startGame();
+          }
+        });
+      }
+      if (startBtn) startBtn.addEventListener("click", startGame);
+    }
+
+    function showStartScreen(message) {
+      overlay.classList.remove("hidden");
+      overlay.innerHTML =
+        "<h2>네온 스네이크</h2>" +
+        "<p>" + (message || "화려한 네온 세상에서 뱀을 키워보세요") + "</p>" +
+        '<div class="name-field">' +
+        '<label for="playerName">플레이어 이름</label>' +
+        '<input id="playerName" type="text" maxlength="12" placeholder="이름 입력" autocomplete="nickname" />' +
+        '<div id="nameError" class="name-error"></div>' +
+        "</div>" +
+        '<button id="startBtn" type="button">시작하기</button>';
+      bindStartUi();
+    }
+
+    renderRankings();
+    bindStartUi();
 
     function randomFreeCell(exclude) {
       let cell;
@@ -653,15 +815,28 @@
       paused = false;
       if (rafId) cancelAnimationFrame(rafId);
       updatePauseUi();
-      overlay.classList.remove("hidden");
-      overlay.innerHTML =
-        "<h2>게임 오버</h2>" +
-        "<p>점수: " + score + " / 최고 점수: " + highScore + "</p>" +
-        '<button id="restartBtn" type="button">다시 시작</button>';
-      document.getElementById("restartBtn").addEventListener("click", startGame);
+      addRanking(playerName, score);
+      showStartScreen(playerName + "님 점수 " + score + "점! 최고 " + highScore + "점");
+      const restartBtn = document.createElement("button");
+      restartBtn.id = "restartBtn";
+      restartBtn.type = "button";
+      restartBtn.textContent = "같은 이름으로 다시";
+      overlay.appendChild(restartBtn);
+      restartBtn.addEventListener("click", startGame);
     }
 
     function startGame() {
+      const nameInput = document.getElementById("playerName");
+      const nameError = document.getElementById("nameError");
+      const name = nameInput ? nameInput.value.trim() : playerName.trim();
+      if (!name) {
+        if (nameError) nameError.textContent = "이름을 입력해주세요";
+        if (nameInput) nameInput.focus();
+        return;
+      }
+      playerName = name.slice(0, 12);
+      localStorage.setItem(NAME_KEY, playerName);
+      if (nameError) nameError.textContent = "";
       resetState();
       overlay.classList.add("hidden");
       running = true;
@@ -806,7 +981,6 @@
       }
     }, { passive: true });
 
-    startBtn.addEventListener("click", startGame);
     pauseBtn.addEventListener("click", togglePause);
 
     resetState();
