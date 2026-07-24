@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>네온 스네이크</title>
   <style>
     * {
@@ -30,14 +30,15 @@
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      padding: 40px 16px;
+      padding: 24px 16px 40px;
       background: linear-gradient(120deg, #0b0221, #1a0533, #05021a, #250040);
       background-size: 400% 400%;
       animation: bgShift 12s ease infinite;
+      touch-action: manipulation;
     }
 
     h1.title {
-      font-size: 2rem;
+      font-size: clamp(1.5rem, 5vw, 2rem);
       letter-spacing: 0.1em;
       margin-bottom: 20px;
       color: #fff;
@@ -48,18 +49,32 @@
       display: flex;
       gap: 24px;
       align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .play-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
     }
 
     .board-wrap {
       position: relative;
+      width: min(400px, 92vw);
+      aspect-ratio: 1;
     }
 
     canvas#board {
+      width: 100%;
+      height: 100%;
       background: #05030a;
       border: 3px solid #0ff;
       border-radius: 10px;
       box-shadow: 0 0 15px #0ff, 0 0 30px rgba(0, 255, 255, 0.4), inset 0 0 20px rgba(0, 255, 255, 0.08);
       display: block;
+      touch-action: none;
     }
 
     .overlay {
@@ -103,6 +118,7 @@
       border-radius: 6px;
       box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
       transition: all 0.15s ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
     button:hover {
@@ -110,8 +126,16 @@
       box-shadow: 0 0 16px #0ff;
     }
 
+    .pause-btn {
+      min-width: 120px;
+    }
+
+    .pause-btn.hidden {
+      display: none;
+    }
+
     .side {
-      width: 190px;
+      width: min(280px, 92vw);
       display: flex;
       flex-direction: column;
       gap: 18px;
@@ -150,10 +174,23 @@
       text-shadow: 0 0 8px #f0f;
     }
 
+    .guide-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .guide-col h4 {
+      font-size: 0.75rem;
+      color: #0ff;
+      margin-bottom: 6px;
+      letter-spacing: 0.06em;
+    }
+
     .controls-list {
       list-style: none;
-      font-size: 0.85rem;
-      line-height: 1.8;
+      font-size: 0.8rem;
+      line-height: 1.7;
       color: #cfc0e6;
     }
 
@@ -161,17 +198,59 @@
       color: #0ff;
       font-weight: bold;
     }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: 64px 64px 64px;
+      grid-template-rows: 64px 64px 64px;
+      gap: 6px;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .dpad button {
+      width: 64px;
+      height: 64px;
+      padding: 0;
+      font-size: 1.4rem;
+      border-radius: 10px;
+    }
+
+    .dpad .up { grid-column: 2; grid-row: 1; }
+    .dpad .left { grid-column: 1; grid-row: 2; }
+    .dpad .right { grid-column: 3; grid-row: 2; }
+    .dpad .down { grid-column: 2; grid-row: 3; }
+
+    .dpad button:active {
+      background: rgba(0, 255, 255, 0.35);
+      transform: scale(0.96);
+    }
+
+    @media (min-width: 760px) {
+      .dpad {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
   <h1 class="title">NEON SNAKE</h1>
   <div class="app">
-    <div class="board-wrap">
-      <canvas id="board" width="400" height="400"></canvas>
-      <div id="overlay" class="overlay">
-        <h2>네온 스네이크</h2>
-        <p>화려한 네온 세상에서 뱀을 키워보세요</p>
-        <button id="startBtn">시작하기</button>
+    <div class="play-col">
+      <div class="board-wrap">
+        <canvas id="board" width="400" height="400"></canvas>
+        <div id="overlay" class="overlay">
+          <h2>네온 스네이크</h2>
+          <p>화려한 네온 세상에서 뱀을 키워보세요</p>
+          <button id="startBtn">시작하기</button>
+        </div>
+      </div>
+      <button id="pauseBtn" class="pause-btn hidden" type="button">일시정지</button>
+      <div class="dpad" aria-label="모바일 방향 조작">
+        <button type="button" class="up" data-dir="up" aria-label="위">▲</button>
+        <button type="button" class="left" data-dir="left" aria-label="왼쪽">◀</button>
+        <button type="button" class="right" data-dir="right" aria-label="오른쪽">▶</button>
+        <button type="button" class="down" data-dir="down" aria-label="아래">▼</button>
       </div>
     </div>
 
@@ -190,11 +269,26 @@
       </div>
       <div class="panel">
         <h3>조작법</h3>
-        <ul class="controls-list">
-          <li><span>방향키</span> 이동</li>
-          <li><span>W A S D</span> 이동</li>
-          <li>황금 먹이는 제한 시간 내 섭취!</li>
-        </ul>
+        <div class="guide-grid">
+          <div class="guide-col">
+            <h4>PC</h4>
+            <ul class="controls-list">
+              <li><span>방향키</span> 이동</li>
+              <li><span>W A S D</span> 이동</li>
+              <li><span>P / Esc</span> 일시정지</li>
+              <li>황금 먹이 제한 시간!</li>
+            </ul>
+          </div>
+          <div class="guide-col">
+            <h4>모바일</h4>
+            <ul class="controls-list">
+              <li><span>화면 버튼</span> 이동</li>
+              <li><span>스와이프</span> 이동</li>
+              <li><span>일시정지</span> 버튼</li>
+              <li>황금 먹이 제한 시간!</li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -213,6 +307,7 @@
     const boardCtx = boardCanvas.getContext("2d");
     const overlay = document.getElementById("overlay");
     const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
     const scoreEl = document.getElementById("score");
     const highScoreEl = document.getElementById("highScore");
     const speedLevelEl = document.getElementById("speedLevel");
@@ -231,9 +326,12 @@
     let tickInterval = BASE_INTERVAL;
 
     let running = false;
+    let paused = false;
     let rafId = null;
     let lastFrameTime = 0;
     let tickAccumulator = 0;
+    let pauseStartedAt = 0;
+    let bonusPauseOffset = 0;
 
     highScoreEl.textContent = highScore;
 
@@ -272,13 +370,34 @@
       score = 0;
       foodCount = 0;
       tickInterval = BASE_INTERVAL;
+      paused = false;
+      bonusPauseOffset = 0;
       updateHud();
+      updatePauseUi();
     }
 
     function updateHud() {
       scoreEl.textContent = score;
       highScoreEl.textContent = highScore;
       speedLevelEl.textContent = foodCount + 1;
+    }
+
+    function updatePauseUi() {
+      if (!running) {
+        pauseBtn.classList.add("hidden");
+        return;
+      }
+      pauseBtn.classList.remove("hidden");
+      pauseBtn.textContent = paused ? "계속하기" : "일시정지";
+    }
+
+    function showPauseOverlay() {
+      overlay.classList.remove("hidden");
+      overlay.innerHTML =
+        "<h2>일시정지</h2>" +
+        "<p>준비가 되면 계속하세요</p>" +
+        '<button id="resumeBtn" type="button">계속하기</button>';
+      document.getElementById("resumeBtn").addEventListener("click", resumeGame);
     }
 
     function spawnParticles(cell, color, count) {
@@ -531,12 +650,14 @@
 
     function endGame() {
       running = false;
+      paused = false;
       if (rafId) cancelAnimationFrame(rafId);
+      updatePauseUi();
       overlay.classList.remove("hidden");
       overlay.innerHTML =
-        '<h2>게임 오버</h2>' +
-        '<p>점수: ' + score + ' / 최고 점수: ' + highScore + '</p>' +
-        '<button id="restartBtn">다시 시작</button>';
+        "<h2>게임 오버</h2>" +
+        "<p>점수: " + score + " / 최고 점수: " + highScore + "</p>" +
+        '<button id="restartBtn" type="button">다시 시작</button>';
       document.getElementById("restartBtn").addEventListener("click", startGame);
     }
 
@@ -546,12 +667,47 @@
       running = true;
       lastFrameTime = 0;
       tickAccumulator = 0;
+      updatePauseUi();
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(loop);
     }
 
+    function pauseGame() {
+      if (!running || paused) return;
+      paused = true;
+      pauseStartedAt = performance.now();
+      updatePauseUi();
+      showPauseOverlay();
+    }
+
+    function resumeGame() {
+      if (!running || !paused) return;
+      const pauseDuration = performance.now() - pauseStartedAt;
+      if (bonusFood) {
+        bonusFood.spawnTime += pauseDuration;
+      }
+      paused = false;
+      lastFrameTime = 0;
+      tickAccumulator = 0;
+      overlay.classList.add("hidden");
+      updatePauseUi();
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function togglePause() {
+      if (!running) return;
+      if (paused) resumeGame();
+      else pauseGame();
+    }
+
     function loop(time) {
       if (!running) return;
+      if (paused) {
+        draw(time);
+        return;
+      }
+
       const delta = lastFrameTime ? time - lastFrameTime : 0;
       lastFrameTime = time;
       tickAccumulator += delta;
@@ -568,41 +724,90 @@
     }
 
     function setDirection(x, y) {
+      if (!running || paused) return;
       if (dir.x === -x && dir.y === -y) return;
       nextDir = { x: x, y: y };
     }
 
-    document.addEventListener("keydown", function (e) {
-      if (!running) return;
-      switch (e.key) {
+    function handleDirKey(key) {
+      switch (key) {
         case "ArrowUp":
         case "w":
         case "W":
-          e.preventDefault();
           setDirection(0, -1);
-          break;
+          return true;
         case "ArrowDown":
         case "s":
         case "S":
-          e.preventDefault();
           setDirection(0, 1);
-          break;
+          return true;
         case "ArrowLeft":
         case "a":
         case "A":
-          e.preventDefault();
           setDirection(-1, 0);
-          break;
+          return true;
         case "ArrowRight":
         case "d":
         case "D":
-          e.preventDefault();
           setDirection(1, 0);
-          break;
+          return true;
+        default:
+          return false;
       }
+    }
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "p" || e.key === "P" || e.key === "Escape") {
+        if (running) {
+          e.preventDefault();
+          togglePause();
+        }
+        return;
+      }
+      if (!running || paused) return;
+      if (handleDirKey(e.key)) e.preventDefault();
     });
 
+    document.querySelectorAll(".dpad button").forEach(function (btn) {
+      btn.addEventListener("pointerdown", function (e) {
+        e.preventDefault();
+        const map = {
+          up: [0, -1],
+          down: [0, 1],
+          left: [-1, 0],
+          right: [1, 0]
+        };
+        const dirKey = btn.getAttribute("data-dir");
+        const d = map[dirKey];
+        if (d) setDirection(d[0], d[1]);
+      });
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    boardCanvas.addEventListener("touchstart", function (e) {
+      if (!running || paused) return;
+      const t = e.changedTouches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+    }, { passive: true });
+
+    boardCanvas.addEventListener("touchend", function (e) {
+      if (!running || paused) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+      if (Math.abs(dx) < 24 && Math.abs(dy) < 24) return;
+      if (Math.abs(dx) > Math.abs(dy)) {
+        setDirection(dx > 0 ? 1 : -1, 0);
+      } else {
+        setDirection(0, dy > 0 ? 1 : -1);
+      }
+    }, { passive: true });
+
     startBtn.addEventListener("click", startGame);
+    pauseBtn.addEventListener("click", togglePause);
 
     resetState();
     draw(0);

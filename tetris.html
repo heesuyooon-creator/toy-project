@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>테트리스</title>
   <style>
     * {
@@ -19,23 +19,43 @@
       display: flex;
       justify-content: center;
       align-items: flex-start;
-      padding: 40px 16px;
+      padding: 24px 16px 40px;
+      touch-action: manipulation;
+    }
+
+    .title {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: clamp(1.4rem, 5vw, 1.8rem);
     }
 
     .app {
       display: flex;
       gap: 24px;
       align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .play-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
     }
 
     .board-wrap {
       position: relative;
+      width: min(240px, 70vw);
     }
 
-    canvas {
+    canvas#board {
+      width: 100%;
+      height: auto;
       background: #12121c;
       border: 2px solid #444;
       display: block;
+      touch-action: none;
     }
 
     .overlay {
@@ -67,17 +87,26 @@
       font-size: 0.95rem;
       cursor: pointer;
       border-radius: 4px;
+      -webkit-tap-highlight-color: transparent;
     }
 
     button:hover {
       background: #444;
     }
 
+    .pause-btn {
+      min-width: 120px;
+    }
+
+    .pause-btn.hidden {
+      display: none;
+    }
+
     .side {
-      width: 180px;
+      width: min(260px, 92vw);
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
     }
 
     .panel {
@@ -100,10 +129,22 @@
       font-weight: bold;
     }
 
+    .guide-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .guide-col h4 {
+      font-size: 0.75rem;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
     .controls-list {
       list-style: none;
-      font-size: 0.85rem;
-      line-height: 1.7;
+      font-size: 0.8rem;
+      line-height: 1.65;
       color: #ccc;
     }
 
@@ -112,15 +153,35 @@
       font-weight: bold;
     }
 
-    h1 {
-      grid-column: 1 / -1;
-      text-align: center;
-      margin-bottom: 16px;
+    .mobile-controls {
+      display: none;
+      width: min(320px, 94vw);
+      gap: 8px;
+      user-select: none;
     }
 
-    .title {
-      text-align: center;
-      margin-bottom: 20px;
+    .mobile-controls .row {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .mobile-controls button {
+      min-width: 64px;
+      min-height: 52px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+
+    .mobile-controls button.wide {
+      min-width: 100px;
+    }
+
+    @media (max-width: 759px) {
+      .mobile-controls {
+        display: flex;
+        flex-direction: column;
+      }
     }
   </style>
 </head>
@@ -128,11 +189,25 @@
   <div>
     <h1 class="title">테트리스</h1>
     <div class="app">
-      <div class="board-wrap">
-        <canvas id="board" width="240" height="480"></canvas>
-        <div id="overlay" class="overlay">
-          <h2>테트리스</h2>
-          <button id="startBtn">시작하기</button>
+      <div class="play-col">
+        <div class="board-wrap">
+          <canvas id="board" width="240" height="480"></canvas>
+          <div id="overlay" class="overlay">
+            <h2>테트리스</h2>
+            <button id="startBtn" type="button">시작하기</button>
+          </div>
+        </div>
+        <button id="pauseBtn" class="pause-btn hidden" type="button">일시정지</button>
+        <div class="mobile-controls" aria-label="모바일 조작">
+          <div class="row">
+            <button type="button" data-action="left" aria-label="왼쪽">←</button>
+            <button type="button" data-action="rotate" aria-label="회전">↻</button>
+            <button type="button" data-action="right" aria-label="오른쪽">→</button>
+          </div>
+          <div class="row">
+            <button type="button" data-action="soft" aria-label="소프트 드롭">↓</button>
+            <button type="button" class="wide" data-action="hard" aria-label="하드 드롭">떨어뜨리기</button>
+          </div>
         </div>
       </div>
 
@@ -151,12 +226,28 @@
         </div>
         <div class="panel">
           <h3>조작법</h3>
-          <ul class="controls-list">
-            <li><span>←/→</span> 이동</li>
-            <li><span>↓</span> 소프트 드롭</li>
-            <li><span>↑</span> 회전</li>
-            <li><span>Space</span> 즉시 낙하</li>
-          </ul>
+          <div class="guide-grid">
+            <div class="guide-col">
+              <h4>PC</h4>
+              <ul class="controls-list">
+                <li><span>←/→</span> 이동</li>
+                <li><span>↓</span> 소프트 드롭</li>
+                <li><span>↑</span> 회전</li>
+                <li><span>Space</span> 즉시 낙하</li>
+                <li><span>P / Esc</span> 일시정지</li>
+              </ul>
+            </div>
+            <div class="guide-col">
+              <h4>모바일</h4>
+              <ul class="controls-list">
+                <li><span>←/→</span> 이동</li>
+                <li><span>↻</span> 회전</li>
+                <li><span>↓</span> 소프트 드롭</li>
+                <li><span>떨어뜨리기</span> 즉시 낙하</li>
+                <li><span>일시정지</span> 버튼</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -173,6 +264,7 @@
     const nextCtx = nextCanvas.getContext("2d");
     const overlay = document.getElementById("overlay");
     const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
     const scoreEl = document.getElementById("score");
     const linesEl = document.getElementById("lines");
 
@@ -221,6 +313,7 @@
     let dropInterval = 800;
     let lastTime = 0;
     let running = false;
+    let paused = false;
     let gameOverFlag = false;
     let rafId = null;
 
@@ -335,7 +428,7 @@
     }
 
     function moveCurrent(dx, dy) {
-      if (!current) return false;
+      if (!current || paused) return false;
       if (!collides(current, dx, dy)) {
         current.x += dx;
         current.y += dy;
@@ -345,6 +438,7 @@
     }
 
     function softDrop() {
+      if (paused) return;
       if (!moveCurrent(0, 1)) {
         lockPiece();
       }
@@ -352,7 +446,7 @@
     }
 
     function hardDrop() {
-      if (!current) return;
+      if (!current || paused) return;
       while (moveCurrent(0, 1)) {}
       lockPiece();
       dropCounter = 0;
@@ -397,15 +491,35 @@
       });
     }
 
-    function endGame() {
-      running = false;
-      gameOverFlag = true;
-      if (rafId) cancelAnimationFrame(rafId);
+    function updatePauseUi() {
+      if (!running || gameOverFlag) {
+        pauseBtn.classList.add("hidden");
+        return;
+      }
+      pauseBtn.classList.remove("hidden");
+      pauseBtn.textContent = paused ? "계속하기" : "일시정지";
+    }
+
+    function showPauseOverlay() {
       overlay.classList.remove("hidden");
       overlay.innerHTML =
-        '<h2>게임 오버</h2>' +
-        '<p>점수: ' + score + '</p>' +
-        '<button id="restartBtn">다시 시작</button>';
+        "<h2>일시정지</h2>" +
+        "<p>준비가 되면 계속하세요</p>" +
+        '<button id="resumeBtn" type="button">계속하기</button>';
+      document.getElementById("resumeBtn").addEventListener("click", resumeGame);
+    }
+
+    function endGame() {
+      running = false;
+      paused = false;
+      gameOverFlag = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      updatePauseUi();
+      overlay.classList.remove("hidden");
+      overlay.innerHTML =
+        "<h2>게임 오버</h2>" +
+        "<p>점수: " + score + "</p>" +
+        '<button id="restartBtn" type="button">다시 시작</button>';
       document.getElementById("restartBtn").addEventListener("click", startGame);
     }
 
@@ -416,6 +530,7 @@
       dropInterval = 800;
       dropCounter = 0;
       lastTime = 0;
+      paused = false;
       scoreEl.textContent = "0";
       linesEl.textContent = "0";
       nextType = randomType();
@@ -423,12 +538,41 @@
       overlay.classList.add("hidden");
       running = true;
       gameOverFlag = false;
+      updatePauseUi();
       if (rafId) cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(update);
     }
 
+    function pauseGame() {
+      if (!running || paused || gameOverFlag) return;
+      paused = true;
+      updatePauseUi();
+      showPauseOverlay();
+    }
+
+    function resumeGame() {
+      if (!running || !paused) return;
+      paused = false;
+      lastTime = 0;
+      dropCounter = 0;
+      overlay.classList.add("hidden");
+      updatePauseUi();
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(update);
+    }
+
+    function togglePause() {
+      if (!running || gameOverFlag) return;
+      if (paused) resumeGame();
+      else pauseGame();
+    }
+
     function update(time) {
       if (!running) return;
+      if (paused) {
+        draw();
+        return;
+      }
       const delta = time - lastTime;
       lastTime = time;
       dropCounter += delta;
@@ -439,8 +583,19 @@
       rafId = requestAnimationFrame(update);
     }
 
+    function canControl() {
+      return running && !paused && !gameOverFlag;
+    }
+
     document.addEventListener("keydown", function (e) {
-      if (!running) return;
+      if (e.key === "p" || e.key === "P" || e.key === "Escape") {
+        if (running && !gameOverFlag) {
+          e.preventDefault();
+          togglePause();
+        }
+        return;
+      }
+      if (!canControl()) return;
       switch (e.key) {
         case "ArrowLeft":
           e.preventDefault();
@@ -465,7 +620,22 @@
       }
     });
 
+    document.querySelectorAll(".mobile-controls button").forEach(function (btn) {
+      btn.addEventListener("pointerdown", function (e) {
+        e.preventDefault();
+        if (!canControl()) return;
+        const action = btn.getAttribute("data-action");
+        if (action === "left") moveCurrent(-1, 0);
+        if (action === "right") moveCurrent(1, 0);
+        if (action === "rotate") tryRotate();
+        if (action === "soft") softDrop();
+        if (action === "hard") hardDrop();
+        draw();
+      });
+    });
+
     startBtn.addEventListener("click", startGame);
+    pauseBtn.addEventListener("click", togglePause);
 
     draw();
     drawNext();
